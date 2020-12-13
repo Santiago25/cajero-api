@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware
 from db.user_db import UserInDB
 from db.user_db import update_user, get_user
 from db.transaction_db import TransactionInDB
@@ -6,24 +7,19 @@ from models.user_models import UserIn, UserOut
 from models.transaction_models import TransactionIn, TransactionOut
 import datetime
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 
 api = FastAPI()
 
 origins = [
-    "http://localhost.tiangolo.com",
-    "https://localhost.tiangolo.com",
-    "http://localhost",
-    "http://localhost:8080",
+    "http://localhost.tiangolo.com", "https://localhost.tiangolo.com",
+    "http://localhost", "http://localhost:8080",
 ]
 
 api.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    CORSMiddleware, allow_origins=origins,
+    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
+
 
 @api.post("/user/auth/")
 async def auth_user(user_in: UserIn):
@@ -34,9 +30,9 @@ async def auth_user(user_in: UserIn):
         raise HTTPException(status_code=404, detail="El usuario no existe")
 
     if user_in_db.password != user_in.password:
-        return  {"Autenticado": False}
+        return {"Autenticado": False}
 
-    return  {"Autenticado": True}
+    return {"Autenticado": True}
 
 
 @api.get("/user/balance/{username}")
@@ -49,7 +45,7 @@ async def get_balance(username: str):
 
     user_out = UserOut(**user_in_db.dict())
 
-    return  user_out
+    return user_out
 
 
 @api.put("/user/transaction/")
@@ -61,14 +57,16 @@ async def make_transaction(transaction_in: TransactionIn):
         raise HTTPException(status_code=404, detail="El usuario no existe")
 
     if user_in_db.balance < transaction_in.value:
-        raise HTTPException(status_code=400, detail="No se tienen los fondos suficientes")
+        raise HTTPException(
+            status_code=400, detail="No se tienen los fondos suficientes")
 
     user_in_db.balance = user_in_db.balance - transaction_in.value
     update_user(user_in_db)
 
-    transaction_in_db = TransactionInDB(**transaction_in.dict(), actual_balance = user_in_db.balance)
+    transaction_in_db = TransactionInDB(
+        **transaction_in.dict(), actual_balance=user_in_db.balance)
     transaction_in_db = save_transaction(transaction_in_db)
 
     transaction_out = TransactionOut(**transaction_in_db.dict())
 
-    return  transaction_out
+    return transaction_out
